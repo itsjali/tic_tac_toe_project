@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from game_app.forms import PlayerInputForm
 from game_app.services import CellAlreadyFilled, GameFinished
+from game_app.models import GameData
 
 
 def check_winner(game_board, current_player):
@@ -39,12 +40,15 @@ def which_player(current_player):
 
 
 def play_game(request):
-    if "reset" in request.GET or not request.session.get("game_board"):
-        request.session["game_board"] = [["", "", ""], ["", "", ""], ["", "", ""]]
-        request.session["current_player"] = "O"
+    game_data = GameData.objects.create()
 
-    game_board = request.session["game_board"]
-    current_player = request.session["current_player"]
+    if "reset" in request.GET:
+        game_data.board = [["", "", ""], ["", "", ""], ["", "", ""]]
+        game_data.current_player = "O"
+        game_data.save()
+
+    game_board = game_data.board
+    current_player = game_data.current_player
     error_message = ""
     outcome_message = ""
 
@@ -66,9 +70,9 @@ def play_game(request):
                     outcome_message = f"{player} Wins!"
                 
                 if current_player == "O":
-                    request.session["current_player"] = "X"
+                    current_player = "X"
                 else:
-                    request.session["current_player"] = "O"
+                    current_player = "O"
         
         except CellAlreadyFilled as e:
             error_message = e
