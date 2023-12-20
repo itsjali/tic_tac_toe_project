@@ -9,3 +9,4 @@ async-timeout==4.0.3
 channels_redis==4.1.0 
 msgpack==1.0.7 
 redis==5.0.1
+whitenoise==6.6.0
