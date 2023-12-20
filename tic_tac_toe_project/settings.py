@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-d3%t%5c-7pvvrxmv154^zcan$)p)rws+we)vs)y*z+xly6vf6s
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['https://tictactoeproject-2ff2fd1481dd.herokuapp.com/Z', 'localhost']
+ALLOWED_HOSTS = ['https://tictactoeproject-2ff2fd1481dd.herokuapp.com/', 'localhost']
 
 
 # Application definition
