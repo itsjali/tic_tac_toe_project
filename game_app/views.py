@@ -45,7 +45,7 @@ def play_game(request):
     if "reset" in request.GET:
         game_data.board = [["", "", ""], ["", "", ""], ["", "", ""]]
         game_data.current_player = "O"
-        game_data.save()
+        game_data.save() 
 
     game_board = game_data.board
     current_player = game_data.current_player

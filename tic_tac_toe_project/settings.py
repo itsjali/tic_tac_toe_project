@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-d3%t%5c-7pvvrxmv154^zcan$)p)rws+we)vs)y*z+xly6vf6s
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["tictactoeproject-2ff2fd1481dd.herokuapp.com"]
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -76,7 +76,7 @@ WSGI_APPLICATION = 'tic_tac_toe_project.wsgi.application'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
+    'default': { 
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / "db.sqlite3",
     },
