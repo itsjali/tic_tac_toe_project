@@ -54,7 +54,7 @@ def play_game(request):
 
     if request.method == 'POST':
         try:
-            form = PlayerInputForm(request.POST, game_board=game_board, current_player=current_player)
+            form = PlayerInputForm(request.POST, game_board=game_board, current_player=current_player) 
             
             if form.is_valid():
                 row, col = form.cleaned_data
