@@ -15,16 +15,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from game_app.urls import websocket_urlpatterns
-from channels.routing import ProtocolTypeRouter, URLRouter
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('game/', include('game_app.urls')),
 ]
-
-application = ProtocolTypeRouter({
-    "websocket": URLRouter(
-        websocket_urlpatterns
-    ),
-})

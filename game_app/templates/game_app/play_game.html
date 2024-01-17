@@ -120,30 +120,3 @@
 </body>
 
 </html>
-
-<script>
-  // WebSocket connection
-  const socket = new WebSocket('ws://' + window.location.host + '/ws/game/');
-
-  // Handle messages from the server
-  socket.onmessage = function (event) {
-    const data = JSON.parse(event.data);
-    // Update the UI based on the received data
-    // For example, update the game board
-    console.log('Received:', data);
-  };
-
-  // Handle errors
-  socket.onerror = function (error) {
-    console.error('WebSocket Error:', error);
-  };
-
-  // Handle connection close
-  socket.onclose = function (event) {
-    if (event.wasClean) {
-      console.log('Closed cleanly, code=' + event.code + ', reason=' + event.reason);
-    } else {
-      console.error('Connection died');
-    }
-  };
-</script>

@@ -1,5 +1,5 @@
-from game_app.forms import PlayerInputForm
-from game_app.services import CellAlreadyFilled
+from game_app.v2.forms import PlayerInputForm
+from game_app.v1.game import CellAlreadyFilled
 
 
 import pytest

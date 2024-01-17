@@ -1,4 +1,4 @@
-from game_app.services import PlayGame, CellAlreadyFilled, NoInputError
+from game_app.v1.game import PlayGame, CellAlreadyFilled, NoInputError
 import pytest
 
 from unittest import mock

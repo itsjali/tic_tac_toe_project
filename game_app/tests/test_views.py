@@ -2,7 +2,7 @@ import pytest
 from unittest import mock
 from django.test import RequestFactory
 from django.http import HttpRequest
-from game_app.views import play_game
+from game_app.v2.views import play_game
 
 @pytest.fixture
 def mock_request():
