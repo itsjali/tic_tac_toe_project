@@ -43,9 +43,18 @@ def update_board(row, col, game_board, current_player):
     return game_board
 
 
-def reset_game_data(request):
+def create_new_game_data():
     game_data = GameData.objects.create()
-    request.session["game_data_id"] = game_data.id
+    return game_data
+
+
+def reset_game_data(request):
+    game_data_id = request.session["game_data_id"] 
+    game_data = GameData.objects.get(id=game_data_id)
+
+    game_data.board = '[["", "", ""], ["", "", ""], ["", "", ""]]'
+    game_data.current_player = "O"
+    game_data.save()
     return game_data
 
 

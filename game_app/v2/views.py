@@ -7,6 +7,7 @@ from game_app.v2.models import GameData
 from game_app.v2.services import (
     check_winner, 
     check_board_full,
+    create_new_game_data,
     reset_game_data,
     update_board,
     which_player,
@@ -16,7 +17,6 @@ from game_app.v2.services import (
 
 def game_over(request, outcome_message=None):
     if "reset" in request.GET:
-        # Reset the game data and redirect to play_game view
         new_game_data = reset_game_data(request)
         return play_game(request, game_data=new_game_data)
 
@@ -27,10 +27,13 @@ def game_over(request, outcome_message=None):
 def play_game(request, game_data=None):
     game_data_id = request.session.get("game_data_id")
 
-    if not game_data_id or "reset" in request.GET:
-        game_data = reset_game_data(request)
+    if not game_data_id:
+        game_data = create_new_game_data()
     else:
         game_data = GameData.objects.get(id=game_data_id)
+    
+    if "reset" in request.GET:
+        game_data = reset_game_data(request)
 
     game_board = json.loads(game_data.board)
     current_player = game_data.current_player
