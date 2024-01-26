@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe Game</title>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    form {
+      width: 300px;
+      margin: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Welcome to the Tic Tac Toe Game</h1>
+    <h3>Click Start New Game and share the URL with your opponent.</h3>
+    <div class="button-container">
+      <form method="post" action="{% url 'game_home' %}">
+        {% csrf_token %}
+        <button type="submit">Start New Game</button>
+      </form>
+    </div>
+  </div>
+</body>
+
+</html>

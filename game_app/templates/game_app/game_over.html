@@ -35,9 +35,9 @@
 
 <body>
   <h1>{{ outcome_message }}</h1>
-
   <div class="button-container">
-    <form method="get" action="{% url 'game_over' %}">
+    <form method="post" action="{% url 'game_over' board_id=board_id %}">
+      {% csrf_token %}
       <button type="submit" name="reset">Restart Game</button>
     </form>
   </div>
