@@ -78,10 +78,9 @@
 <div class="subheading">
   <h2>How to Play:</h2>
   <p>Enter a move by inputting a number between 1 - 3 in Row and Column.</p>
-  <p>To restart the game: Click Start new game.</p>
 </div>
 
-<form method="post" action="{% url 'play_game' %}">
+<form method="post" action="{% url 'game_play' board_id=board_id player_game_id=player_game_id %}">
   {% csrf_token %}
 
   <div>
@@ -97,8 +96,8 @@
   <button type="submit">Make Move</button>
 </form>
 
-<form method="get" action="{% url 'play_game' %}">
-  <button type="submit" name="reset">Start New Game</button>
+<form method="get" action="{% url 'game_play' board_id=board_id player_game_id=player_game_id %}">
+  <button type="submit" name="reset">Restart Game</button>
 </form>
 
 <div class="board">

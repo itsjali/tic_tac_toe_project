@@ -1,44 +1,38 @@
 import json
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 from game_app.v2.forms import PlayerInputForm
-from game_app.v2.models import GameData
+from game_app.v2.models import GameBoard, Players
 from game_app.v2.services import (
     check_winner, 
     check_board_full,
-    create_new_game_data,
-    reset_game_data,
+    create_game_data,
+    reset_board_data,
     update_board,
     which_player,
     CellAlreadyFilled,
 )
 
 
-def game_over(request, outcome_message=None):
+def game_home(request):
+    if request.method == "POST":
+        game_data = create_game_data()
+        return redirect("game_play", game_data[0].id, game_data[1])
+
+    return render(request, "game_app/home.html")
+
+
+def game_play(request, board_id, player_game_id):
     if "reset" in request.GET:
-        new_game_data = reset_game_data(request)
-        return play_game(request, game_data=new_game_data)
+        game_board = reset_board_data(board_id)
 
-    context = {"outcome_message": outcome_message}
-    return render(request, "game_app/game_over.html", context)
+    game_board_obj = GameBoard.objects.get(id=board_id)
+    player_obj = Players.objects.get(player_game_id=player_game_id, game_board=game_board_obj)
 
-
-def play_game(request, game_data=None):
-    game_data_id = request.session.get("game_data_id")
-
-    if not game_data_id:
-        game_data = create_new_game_data()
-    else:
-        game_data = GameData.objects.get(id=game_data_id)
-    
-    if "reset" in request.GET:
-        game_data = reset_game_data(request)
-
-    game_board = json.loads(game_data.board)
-    current_player = game_data.current_player
+    game_board = json.loads(game_board_obj.data)
+    player_symbol = player_obj.symbol
     error_message = ""
-    outcome_message = ""
     game_over_outcome = False
     
     if request.method == 'POST':
@@ -47,25 +41,13 @@ def play_game(request, game_data=None):
 
             if form.is_valid():
                 row, col = form.cleaned_data
-                updated_game_board = update_board(row, col, game_board, current_player)
+                updated_game_board = update_board(row, col, game_board, player_symbol)
 
-                if check_board_full(updated_game_board):
-                    outcome_message = "It's a Draw!"
+                if check_board_full(updated_game_board) or check_winner(updated_game_board, player_symbol):
                     game_over_outcome = True
-                
-                elif check_winner(updated_game_board, current_player):
-                    player = which_player(current_player)
-                    outcome_message = f"{player} Wins!"
-                    game_over_outcome = True
-
-                if not game_over_outcome: 
-                    if game_data.current_player == "O":
-                        game_data.current_player = "X" 
-                    else: 
-                        game_data.current_player = "O"
                     
-                    game_data.board = json.dumps(updated_game_board)
-                    game_data.save()
+                game_board_obj.data = json.dumps(updated_game_board)
+                game_board_obj.save()
 
         except CellAlreadyFilled as e:
             error_message = e
@@ -75,12 +57,32 @@ def play_game(request, game_data=None):
     context = {
         "game_board": game_board,
         "error_message": error_message,
-        "outcome_message": outcome_message,
         "form": form,
         "game_over": game_over_outcome,
+        "board_id": board_id,
+        "player_game_id": player_game_id
     }
 
     if game_over_outcome:
-        return game_over(request, outcome_message=outcome_message)
+        return redirect("game_over", board_id)
 
-    return render(request, "game_app/play_game.html", context)
+    return render(request, "game_app/play.html", context)
+
+
+def game_over(request, board_id):
+    game_board_obj = GameBoard.objects.get(id=board_id)
+    player_obj = Players.objects.get(game_board=game_board_obj)
+
+    if request.method == "POST":
+        reset_board_data(board_id)
+        return redirect("game_play", board_id, player_obj.player_game_id)
+    
+    if check_board_full(game_board_obj.data):
+        outcome_message = "It's a Draw!"
+
+    if check_winner(game_board_obj.data, player_obj.symbol):
+        player_ = which_player(player_obj.symbol)
+        outcome_message = f"{player_} Wins!"
+    
+    context = {"outcome_message": outcome_message, "board_id": board_id}
+    return render(request, "game_app/game_over.html", context)
