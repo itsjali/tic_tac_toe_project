@@ -64,18 +64,18 @@ def game_play(request, board_id, player_game_id):
     }
 
     if game_over_outcome:
-        return redirect("game_over", board_id)
+        return redirect("game_over", board_id, player_game_id)
 
     return render(request, "game_app/play.html", context)
 
 
-def game_over(request, board_id):
+def game_over(request, board_id, player_game_id):
     game_board_obj = GameBoard.objects.get(id=board_id)
-    player_obj = Players.objects.get(game_board=game_board_obj)
+    player_obj = Players.objects.get(game_board=game_board_obj, player_game_id=player_game_id)
 
     if request.method == "POST":
         reset_board_data(board_id)
-        return redirect("game_play", board_id, player_obj.player_game_id)
+        return redirect("game_play", board_id, player_game_id)
     
     if check_board_full(game_board_obj.data):
         outcome_message = "It's a Draw!"
@@ -84,5 +84,9 @@ def game_over(request, board_id):
         player_ = which_player(player_obj.symbol)
         outcome_message = f"{player_} Wins!"
     
-    context = {"outcome_message": outcome_message, "board_id": board_id}
+    context = {
+        "outcome_message": outcome_message, 
+        "board_id": board_id,
+        "player_game_id": player_game_id,
+    }
     return render(request, "game_app/game_over.html", context)
