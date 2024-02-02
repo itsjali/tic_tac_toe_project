@@ -1,9 +1,10 @@
 import json
 
+from django.contrib.auth import login
 from django.shortcuts import render, redirect
 
-from game_app.v2.forms import PlayerInputForm
-from game_app.v2.models import GameBoard, Players
+from game_app.v2.forms import PlayerInputForm, CreateUserForm, LoginForm
+from game_app.v2.models import GameBoard, Player
 from game_app.v2.services import (
     check_winner, 
     check_board_full,
@@ -12,9 +13,45 @@ from game_app.v2.services import (
     update_board,
     which_player,
     CellAlreadyFilled,
+    InvalidCredentials,
+    InvalidCreateUserCredentials,
+    authenticate_login_user,
 )
 
 
+def signup_view(request):
+    if request.method == "POST":
+        try: 
+            form = CreateUserForm(request.POST)
+            if form.is_valid():
+                return redirect("login")
+            
+        except InvalidCreateUserCredentials as e:
+            error_message = e
+            return render(request, "game_app/signup.html", {"error_message": error_message})
+
+    form = CreateUserForm()
+    return render(request, "game_app/signup.html", {"form": form})
+
+
+def login_view(request):
+    if request.method == "POST":
+        try:
+            form = LoginForm(request.POST)
+            if form.is_valid():
+                user = form.cleaned_data
+                login(request, user)
+                return redirect("game_home")
+            
+        except InvalidCredentials as e:
+            error_message = e
+            return render(request, "game_app/login.html", {"error_message": error_message})
+
+    form = LoginForm()
+    return render(request, "game_app/login.html", {"form": form})
+
+
+@authenticate_login_user
 def game_home(request):
     if request.method == "POST":
         game_data = create_game_data()
@@ -23,6 +60,7 @@ def game_home(request):
     return render(request, "game_app/home.html")
 
 
+@authenticate_login_user
 def game_play(request, board_id, player_game_id):
     if "reset" in request.GET:
         game_board = reset_board_data(board_id)
@@ -43,7 +81,8 @@ def game_play(request, board_id, player_game_id):
                 row, col = form.cleaned_data
                 updated_game_board = update_board(row, col, game_board, player_symbol)
 
-                if check_board_full(updated_game_board) or check_winner(updated_game_board, player_symbol):
+                if check_board_full(updated_game_board) or check_winner(updated_game_board, player_symbol): 
+                    # why are we checking this twice, here and ine the game over view
                     game_over_outcome = True
                     
                 game_board_obj.data = json.dumps(updated_game_board)
@@ -69,6 +108,7 @@ def game_play(request, board_id, player_game_id):
     return render(request, "game_app/play.html", context)
 
 
+@authenticate_login_user
 def game_over(request, board_id, player_game_id):
     game_board_obj = GameBoard.objects.get(id=board_id)
     player_obj = Players.objects.get(player_game_id=player_game_id, game_board=game_board_obj)
