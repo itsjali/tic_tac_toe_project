@@ -1,3 +1,5 @@
+from django.shortcuts import redirect
+
 from game_app.v2.models import GameBoard, Players
 
 
@@ -61,3 +63,19 @@ def reset_board_data(board_id):
 class CellAlreadyFilled(ValueError):
     pass
 
+
+class InvalidCredentials(ValueError):
+    pass
+
+
+class InvalidCreateUserCredentials(ValueError):
+    pass
+
+
+def authenticate_login_user(view_func):
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect("login")
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
