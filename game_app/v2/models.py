@@ -1,18 +1,15 @@
-from django.core.validators import MaxValueValidator
+from django.contrib.auth.models import User
 from django.db import models
 
-
-class GameBoard(models.Model):
+class Game(models.Model):
     DEFAULT_BOARD = '[["", "", ""], ["", "", ""], ["", "", ""]]'
-    data = models.CharField(default=DEFAULT_BOARD, max_length=50)
-
-
-class Players(models.Model):
-    SYMBOL_CHOICES = [
-        ("O", "O"),
-        ("X", "X"),
-    ]
-
-    player_game_id = models.IntegerField(default=1, validators=[MaxValueValidator(2)])
-    symbol = models.CharField(max_length=1, choices=SYMBOL_CHOICES)
-    game_board = models.ForeignKey(GameBoard, on_delete=models.CASCADE, related_name="players")
+    board = models.CharField(default=DEFAULT_BOARD, max_length=50)
+    
+    player_1 = models.ForeignKey(User, related_name="player_1", on_delete=models.CASCADE, null=True)
+    player_1_icon = models.CharField(max_length=1, default="O")
+    player_2 = models.ForeignKey(User, related_name="player_2", on_delete=models.CASCADE, null=True)
+    player_2_icon = models.CharField(max_length=1, default="X")
+    active_player = models.ForeignKey(User, related_name="active_player", on_delete=models.CASCADE, null=True)
+    
+    is_active = models.BooleanField(default=True)
+    outcome = models.CharField(max_length=10, null=True, blank=True)

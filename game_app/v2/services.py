@@ -1,6 +1,7 @@
+from django.contrib.auth.models import User
 from django.shortcuts import redirect
 
-from game_app.v2.models import GameBoard, Players
+from game_app.v2.models import Game
 
 
 # Game Functions
@@ -33,42 +34,62 @@ def check_board_full(game_board):
     return True
 
 
-def which_player(player_symbol):
-    if player_symbol == "O":
-        return "Player 1"
+def get_player_icon(game, user):
+    if game.player_1 == user:
+        player_icon = game.player_1_icon
     else:
-        return "Player 2"
+        player_icon = game.player_2_icon
+    return player_icon
 
 
-def update_board(row, col, game_board, player_symbol):
-    game_board[row][col] = player_symbol
+def switch_active_player(game, user):
+    if game.active_player == game.player_1:
+        game.active_player = game.player_2
+    else:
+        game.active_player = game.player_1
+    game.save()
+
+
+def update_board(row, col, game_board, player_icon):
+    game_board[row][col] = player_icon
     return game_board
 
 
-def create_game_data():
-    game_board = GameBoard.objects.create()
-    player_1 = Players.objects.create(player_game_id=1, game_board=game_board, symbol="O")
-    player_2 = Players.objects.create(player_game_id=2, game_board=game_board, symbol="X")
-    return game_board, player_1.player_game_id
+def create_new_game(request, opponent_user_id):
+    player_1 = User.objects.get(id=request.user.id)
+    player_2 = User.objects.get(id=opponent_user_id)
+    
+    game = Game.objects.create(
+        player_1=player_1,
+        player_2=player_2,
+        active_player=player_1
+    )
+    return game
 
 
-def reset_board_data(board_id):
-    game_board = GameBoard.objects.get(id=board_id)
-    game_board.data = '[["", "", ""], ["", "", ""], ["", "", ""]]'
-    game_board.save()
-    return game_board
+def get_active_game(game_id):
+    game = Game.objects.get(id=game_id)
+    return game
+
+
+def reset_board(game):
+    game.board = '[["", "", ""], ["", "", ""], ["", "", ""]]'
+    game.save()
+    return game
+
 
 # Custom Errors
 
 class CellAlreadyFilled(ValueError):
     pass
 
-
 class InvalidCredentials(ValueError):
     pass
 
-
 class InvalidCreateUserCredentials(ValueError):
+    pass
+
+class InvalidActiveUser(ValueError):
     pass
 
 

@@ -4,38 +4,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tic Tac Toe Game</title>
+  <title>Game Home</title>
   <style>
     body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
       margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      justify-content: center;
+    }
+
+    header {
+      background-color: #333;
+      color: #fff;
+      padding: 10px 0;
+      text-align: center;
+      width: 100%;
     }
 
     .container {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px;
+      margin-top: 20px;
+      /* Added margin to create space between header and columns */
+      width: 100%;
+      /* Ensure the container spans the entire width */
+      max-width: 800px;
+      /* Limit the maximum width of the container */
+    }
+
+    .column {
+      width: 45%;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+
+    h2 {
       text-align: center;
     }
 
-    form {
-      width: 300px;
-      margin: auto;
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 5px;
     }
   </style>
 </head>
 
 <body>
+  <h1>Welcome to the Tic Tac Toe Game</h1>
   <div class="container">
-    <h1>Welcome to the Tic Tac Toe Game</h1>
-    <h3>Click Start New Game and share the URL with your opponent.</h3>
-    <div class="button-container">
-      <form method="post" action="{% url 'game_home' %}">
-        {% csrf_token %}
-        <button type="submit">Start New Game</button>
-      </form>
+    <div class="column">
+      <h2>Play Against</h2>
+      <ul>
+        {% for user in opponent_users %}
+        <li><a href="{% url 'new_game' opponent_user_id=user.id %}">{{ user }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="column">
+      <h2>Active Games</h2>
+      <ul>
+        {% for game in active_games %}
+        <li><a href="{% url 'active_games' game_id=game.id %}">{{ game.id }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="column">
+      <h2>Wins</h2>
+      <ul>
+        {% for opponent, win_count in win_counts.items %}
+        <li>{{ opponent }}: {{ win_count }}</li>
+        {% endfor %}
+      </ul>
     </div>
   </div>
 </body>
-
-</html>
