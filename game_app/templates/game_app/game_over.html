@@ -1,39 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'game_app/base_header.html' %}
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game Over</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-
-    .button-container {
-      margin-top: 20px;
-    }
-
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-
-<body>
+{% block content %}
+<div class="container">
   <h1>{{ outcome_message }}</h1>
   <div class="button-container">
     <form method="post" action="{% url 'game_over' board_id=board_id player_game_id=player_game_id %}">
@@ -41,6 +9,24 @@
       <button type="submit" name="reset">Restart Game</button>
     </form>
   </div>
-</body>
+</div>
 
-</html>
+<style>
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .button-container {
+    margin-top: 20px;
+  }
+
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+</style>
+{% endblock %}
