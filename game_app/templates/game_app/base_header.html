@@ -1,0 +1,28 @@
+<body>
+  <header>
+    <h1>Noughts & Crosses!</h1>
+    {% if not login_page and not signup_page %}
+    <div class="user-info">
+      Logged in as {{ user }}
+    </div>
+    {% endif %}
+  </header>
+
+  <main>
+    {% block content %}
+    {% endblock %}
+  </main>
+</body>
+
+<style>
+  header {
+    background-color: #252241;
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+  }
+
+  header h1 {
+    font-weight: bold;
+  }
+</style>
