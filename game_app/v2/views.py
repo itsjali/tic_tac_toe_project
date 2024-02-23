@@ -1,23 +1,30 @@
 import json
+from django.db.models import Q
 
+from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.shortcuts import render, redirect
 
 from game_app.v2.forms import PlayerInputForm, CreateUserForm, LoginForm
-from game_app.v2.models import GameBoard, Player
+from game_app.v2.models import Game
 from game_app.v2.services import (
     check_winner, 
     check_board_full,
-    create_game_data,
-    reset_board_data,
+    create_new_game,
+    get_active_game,
+    get_player_icon,
+    switch_active_player,
     update_board,
-    which_player,
     CellAlreadyFilled,
+    InvalidActiveUser,
     InvalidCredentials,
     InvalidCreateUserCredentials,
     authenticate_login_user,
 )
 
+# Authentication
 
 def signup_view(request):
     if request.method == "POST":
@@ -31,7 +38,12 @@ def signup_view(request):
             return render(request, "game_app/signup.html", {"error_message": error_message})
 
     form = CreateUserForm()
-    return render(request, "game_app/signup.html", {"form": form})
+
+    context = {
+        "form": form,
+        "signup_page": True,
+    }
+    return render(request, "game_app/signup.html", context)
 
 
 def login_view(request):
@@ -39,8 +51,8 @@ def login_view(request):
         try:
             form = LoginForm(request.POST)
             if form.is_valid():
-                user = form.cleaned_data
-                login(request, user)
+                username = form.cleaned_data
+                login(request, username)
                 return redirect("game_home")
             
         except InvalidCredentials as e:
@@ -48,47 +60,102 @@ def login_view(request):
             return render(request, "game_app/login.html", {"error_message": error_message})
 
     form = LoginForm()
-    return render(request, "game_app/login.html", {"form": form})
+    
+    context = {
+        "form": form,
+        "login_page": True,
+    }
+    return render(request, "game_app/login.html", context)
 
+
+# Game Views
 
 @authenticate_login_user
 def game_home(request):
-    if request.method == "POST":
-        game_data = create_game_data()
-        return redirect("game_play", game_data[0].id, game_data[1])
+    user = request.user
+    opponent_users = User.objects.exclude(id=user.id)
+    active_games = Game.objects.filter(
+        Q(player_1=user, is_active=True) | 
+        Q(player_2=user, is_active=True)
+    )
 
-    return render(request, "game_app/home.html")
+    active_game_info = []
+    for game in active_games:
+        opponent = game.player_1 if game.player_1 != user else game.player_2
+        active_game_info.append({
+            'opponent_username': opponent.username,
+            'game_id': game.id
+        })
+
+    # create another view to show wins/lose/draws 
+    win_counts = {}
+    for opponent in opponent_users:
+        wins_against_opponent = Game.objects.filter(
+            Q(player_1=opponent, outcome=f"{user} Winner") | 
+            Q(player_2=opponent, outcome=f"{user} Winner")
+        ).count()
+        win_counts[opponent] = wins_against_opponent
+
+    context = {
+        "opponent_users": opponent_users,
+        "active_game_info": active_game_info,
+        "win_counts": win_counts,
+    }
+
+    return render(request, "game_app/home.html", context)
 
 
 @authenticate_login_user
-def game_play(request, board_id, player_game_id):
-    if "reset" in request.GET:
-        game_board = reset_board_data(board_id)
+def new_game(request, opponent_user_id):
+    try:
+        game = create_new_game(request, opponent_user_id)
+        return redirect("game_play", game.id, game.player_1.id)
+    
+    except ValidationError as e:
+        messages.error(request, e.messages[0])
+        return redirect("game_home")
 
-    game_board_obj = GameBoard.objects.get(id=board_id)
-    player_obj = Players.objects.get(player_game_id=player_game_id, game_board=game_board_obj)
 
-    game_board = json.loads(game_board_obj.data)
-    player_symbol = player_obj.symbol
+@authenticate_login_user
+def active_games(request, game_id):
+    game = get_active_game(game_id)
+    return redirect("game_play", game.id, request.user.id)
+
+
+@authenticate_login_user
+def game_play(request, game_id, player_id):
+    game = Game.objects.get(pk=game_id)
+    game_board = json.loads(game.board)
+    
+    user = User.objects.get(pk=player_id)
+    player_icon = get_player_icon(game, user)
+
     error_message = ""
     game_over_outcome = False
     
     if request.method == 'POST':
         try:
-            form = PlayerInputForm(request.POST, game_board=game_board)
-
+            form = PlayerInputForm(request.POST, game=game, user=user)
             if form.is_valid():
                 row, col = form.cleaned_data
-                updated_game_board = update_board(row, col, game_board, player_symbol)
-
-                if check_board_full(updated_game_board) or check_winner(updated_game_board, player_symbol): 
-                    # why are we checking this twice, here and ine the game over view
-                    game_over_outcome = True
-                    
-                game_board_obj.data = json.dumps(updated_game_board)
-                game_board_obj.save()
+                updated_game_board = update_board(row, col, game_board, player_icon)
+                
+                if check_winner(updated_game_board, player_icon):
+                    game.outcome = f"{user} Wins"
+                
+                if check_board_full(updated_game_board):
+                    game.outcome = "A Draw"
+                
+                if not game.outcome:
+                    game.board = json.dumps(updated_game_board)
+                    switch_active_player(game, user)
+                
+                game.save()
 
         except CellAlreadyFilled as e:
+            error_message = e
+        
+        except InvalidActiveUser as e:
             error_message = e
 
     form = PlayerInputForm()
@@ -98,36 +165,28 @@ def game_play(request, board_id, player_game_id):
         "error_message": error_message,
         "form": form,
         "game_over": game_over_outcome,
-        "board_id": board_id,
-        "player_game_id": player_game_id
+        "game": game,
+        "player_id": player_id
     }
 
-    if game_over_outcome:
-        return redirect("game_over", board_id, player_game_id)
+    if game.outcome:
+        return redirect("game_over", game_id)
 
     return render(request, "game_app/play.html", context)
 
 
 @authenticate_login_user
-def game_over(request, board_id, player_game_id):
-    game_board_obj = GameBoard.objects.get(id=board_id)
-    player_obj = Players.objects.get(player_game_id=player_game_id, game_board=game_board_obj)
+def game_over(request, game_id):
+    game = Game.objects.get(pk=game_id)
+    game.is_active = False
+    game.save()
 
     if request.method == "POST":
-        reset_board_data(board_id)
-        return redirect("game_play", board_id, player_obj.player_game_id)
-    
-    if check_board_full(game_board_obj.data):
-        outcome_message = "It's a Draw!"
-
-    if check_winner(game_board_obj.data, player_obj.symbol):
-        player_ = which_player(player_obj.symbol)
-        outcome_message = f"{player_} Wins!"
+        return redirect("game_home")
     
     context = {
-        "outcome_message": outcome_message, 
-        "board_id": board_id, 
-        "player_game_id": player_game_id,
+        "outcome_message": game.outcome, 
+        "game_id": game_id,
     }
 
     return render(request, "game_app/game_over.html", context)

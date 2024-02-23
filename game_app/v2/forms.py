@@ -1,13 +1,14 @@
+import json
+
 from django import forms 
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from django.core.exceptions import ValidationError
-
 
 from game_app.v2.services import (
     CellAlreadyFilled, 
     InvalidCredentials, 
     InvalidCreateUserCredentials,
+    InvalidActiveUser,
 )
 
 
@@ -60,18 +61,24 @@ class PlayerInputForm(forms.Form):
     col = forms.IntegerField(min_value=1, max_value=3)
 
     def __init__(self, *args, **kwargs):
-        game_board = kwargs.pop("game_board", None)
+        game = kwargs.pop("game", None)
+        user = kwargs.pop("user", None)
         super(PlayerInputForm, self).__init__(*args, **kwargs)
 
-        self.game_board = game_board
+        self.game = game
+        self.user = user
 
     def clean(self):
         cleaned_data = super().clean()
+        if self.user != self.game.active_player:
+            raise InvalidActiveUser("Please wait. It's not your turn yet!")
+
         row = cleaned_data.get("row") - 1
         col = cleaned_data.get("col") - 1
 
-        if self.game_board[row][col] != "":
-            raise CellAlreadyFilled("Cell already filled. Please try again")
+        game_board = json.loads(self.game.board) 
+        if game_board[row][col] != "":
+            raise CellAlreadyFilled("Cell already filled. Please try again.")
 
         cleaned_data["formatted_input"] = (row, col)
         return cleaned_data["formatted_input"]

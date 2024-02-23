@@ -1,6 +1,8 @@
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.shortcuts import redirect
 
-from game_app.v2.models import GameBoard, Players
+from game_app.v2.models import Game
 
 
 # Game Functions
@@ -33,30 +35,49 @@ def check_board_full(game_board):
     return True
 
 
-def which_player(player_symbol):
-    if player_symbol == "O":
-        return "Player 1"
-    else:
-        return "Player 2"
-
-
 def update_board(row, col, game_board, player_symbol):
     game_board[row][col] = player_symbol
     return game_board
 
 
-def create_game_data():
-    game_board = GameBoard.objects.create()
-    player_1 = Players.objects.create(player_game_id=1, game_board=game_board, symbol="O")
-    player_2 = Players.objects.create(player_game_id=2, game_board=game_board, symbol="X")
-    return game_board, player_1.player_game_id
+def create_new_game(request, opponent_user_id):
+    player_1 = User.objects.get(id=request.user.id)
+    player_2 = User.objects.get(id=opponent_user_id)
+
+    if Game(player_1=player_1, player_2=player_2).has_active_game:
+        raise ValidationError(
+            f"Unable to create new game. Please complete your active game with {player_2}."
+        )
+    
+    game = Game.objects.create(
+        player_1=player_1,
+        player_2=player_2,
+        active_player=player_1
+    )
+    return game
 
 
-def reset_board_data(board_id):
-    game_board = GameBoard.objects.get(id=board_id)
-    game_board.data = '[["", "", ""], ["", "", ""], ["", "", ""]]'
-    game_board.save()
-    return game_board
+def get_active_game(game_id):
+    game = Game.objects.get(id=game_id)
+    return game
+
+
+def get_player_icon(game, user):
+    if user == game.player_1:
+        return game.player_1_icon
+    if user == game.player_2:
+        return game.player_2_icon
+    
+
+def switch_active_player(game, user):
+    if user == game.player_1:
+        game.active_player = game.player_2
+    
+    if user == game.player_2:
+        game.active_player = game.player_1
+
+    game.save()
+
 
 # Custom Errors
 
@@ -69,6 +90,10 @@ class InvalidCredentials(ValueError):
 
 
 class InvalidCreateUserCredentials(ValueError):
+    pass
+
+
+class InvalidActiveUser(ValueError):
     pass
 
 
