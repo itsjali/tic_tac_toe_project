@@ -1,12 +1,14 @@
 import json
-from django.db.models import Q
 
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.shortcuts import render, redirect
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from game_app.v2.forms import PlayerInputForm, CreateUserForm, LoginForm
 from game_app.v2.models import Game
 from game_app.v2.services import (
@@ -122,51 +124,51 @@ def active_games(request, game_id):
     return redirect("game_play", game.id, request.user.id)
 
 
+def post_game_board(request, game_id, player_id):
+    game = Game.objects.get(pk=game_id)
+    user = User.objects.get(pk=player_id)
+    player_icon = get_player_icon(game, user)
+
+    if request.method == "POST":
+        form = PlayerInputForm(request.POST, game=game, user=user)
+        if form.is_valid():
+            coordinates, game_board = form.cleaned_data
+            row, col = coordinates
+            updated_game_board = update_board(row, col, game_board, player_icon)
+
+            game.board = json.dumps(updated_game_board)
+            game.save()
+
+            # Communicate with WebSocket.
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"{game_id}", 
+                {
+                    "type": "post_game_board",
+                    "game_board": updated_game_board,
+                }
+            )
+
+            return redirect("game_play", game_id, request.user.id)
+
+
 @authenticate_login_user
 def game_play(request, game_id, player_id):
     game = Game.objects.get(pk=game_id)
     game_board = json.loads(game.board)
-    
-    user = User.objects.get(pk=player_id)
-    player_icon = get_player_icon(game, user)
 
     error_message = ""
     game_over_outcome = False
-    
-    if request.method == 'POST':
-        try:
-            form = PlayerInputForm(request.POST, game=game, user=user)
-            if form.is_valid():
-                row, col = form.cleaned_data
-                updated_game_board = update_board(row, col, game_board, player_icon)
-                
-                if check_winner(updated_game_board, player_icon):
-                    game.outcome = f"{user} Wins"
-                
-                if check_board_full(updated_game_board):
-                    game.outcome = "A Draw"
-                
-                if not game.outcome:
-                    game.board = json.dumps(updated_game_board)
-                    switch_active_player(game, user)
-                
-                game.save()
-
-        except CellAlreadyFilled as e:
-            error_message = e
-        
-        except InvalidActiveUser as e:
-            error_message = e
 
     form = PlayerInputForm()
 
     context = {
-        "game_board": game_board,
-        "error_message": error_message,
         "form": form,
-        "game_over": game_over_outcome,
         "game": game,
-        "player_id": player_id
+        "game_board": game_board,
+        "player_id": player_id,
+        "error_message": error_message,
+        "game_over": game_over_outcome,
     }
 
     if game.outcome:
