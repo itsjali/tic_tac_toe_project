@@ -124,41 +124,51 @@ def active_games(request, game_id):
     return redirect("game_play", game.id, request.user.id)
 
 
-def post_game_board(request, game_id, player_id):
-    game = Game.objects.get(pk=game_id)
-    user = User.objects.get(pk=player_id)
-    player_icon = get_player_icon(game, user)
-
-    if request.method == "POST":
-        form = PlayerInputForm(request.POST, game=game, user=user)
-        if form.is_valid():
-            coordinates, game_board = form.cleaned_data
-            row, col = coordinates
-            updated_game_board = update_board(row, col, game_board, player_icon)
-
-            game.board = json.dumps(updated_game_board)
-            game.save()
-
-            # Communicate with WebSocket.
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"{game_id}", 
-                {
-                    "type": "post_game_board",
-                    "game_board": updated_game_board,
-                }
-            )
-
-            return redirect("game_play", game_id, request.user.id)
-
-
 @authenticate_login_user
 def game_play(request, game_id, player_id):
     game = Game.objects.get(pk=game_id)
+    user = User.objects.get(pk=player_id)
+    
     game_board = json.loads(game.board)
+    player_icon = get_player_icon(game, user)
 
     error_message = ""
-    game_over_outcome = False
+
+    if request.method == "POST":
+        try:
+            form = PlayerInputForm(request.POST, game=game, user=user)
+            if form.is_valid():
+                coordinates, game_board = form.cleaned_data
+                row, col = coordinates
+
+                updated_game_board = update_board(row, col, game_board, player_icon)
+                switch_active_player(game, user)
+                game.board = json.dumps(updated_game_board)
+
+                if check_winner(updated_game_board, player_icon):
+                    game.outcome = f"{user} Wins"
+                
+                if check_board_full(updated_game_board):
+                    game.outcome = "A Draw"
+                
+                game.save()
+
+                # Communicate with WebSocket.
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"{game_id}", 
+                    {
+                        "type": "post_game_board",
+                        "game_board": updated_game_board,
+                        "game_outcome": game.outcome,
+                    }
+                )
+
+        except CellAlreadyFilled as e:
+            error_message = e
+
+        except InvalidActiveUser as e:
+            error_message = e
 
     form = PlayerInputForm()
 
@@ -168,11 +178,7 @@ def game_play(request, game_id, player_id):
         "game_board": game_board,
         "player_id": player_id,
         "error_message": error_message,
-        "game_over": game_over_outcome,
     }
-
-    if game.outcome:
-        return redirect("game_over", game_id)
 
     return render(request, "game_app/play.html", context)
 
@@ -180,15 +186,16 @@ def game_play(request, game_id, player_id):
 @authenticate_login_user
 def game_over(request, game_id):
     game = Game.objects.get(pk=game_id)
+    user = User.objects.get(pk=request.user.id)
+
     game.is_active = False
     game.save()
-
-    if request.method == "POST":
-        return redirect("game_home")
     
     context = {
-        "outcome_message": game.outcome, 
         "game_id": game_id,
+        "game_outcome": game.outcome, 
+        "winner_outcome": f"{user} Wins",
+        "a_draw": "A Draw",
     }
 
     return render(request, "game_app/game_over.html", context)

@@ -11,5 +11,4 @@ urlpatterns = [
     path("active_games/<int:game_id>/", views.active_games, name="active_games"),
     path("play/<int:game_id>/<int:player_id>/", views.game_play, name="game_play"),
     path("game_over/<int:game_id>/", views.game_over, name="game_over"),
-    path("post_game_board/<int:game_id>/<int:player_id>/", views.post_game_board, name="post_game_board"),
 ]

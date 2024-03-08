@@ -19,9 +19,11 @@ class GameConsumer(WebsocketConsumer):
     # Receive message from room group
     def post_game_board(self, event):
         game_board = event["game_board"]
+        game_outcome = event["game_outcome"]
 
         # Send message to WebSocket
         self.send(text_data=json.dumps({
             "type": "post_game_board",
             "game_board": game_board,
+            "game_outcome": game_outcome,
         }))
