@@ -107,7 +107,7 @@ def game_home(request):
 def new_game(request, opponent_user_id):
     try:
         game = create_new_game(request, opponent_user_id)
-        return redirect("game_play", game.id, game.player_1.id) 
+        return redirect("game_play", game.id, game.player_1.id)
     except ValidationError as e:
         messages.error(request, e.messages[0])
         return redirect("game_home")

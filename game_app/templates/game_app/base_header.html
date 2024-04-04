@@ -2,7 +2,7 @@
   <header>
     <h1>Noughts & Crosses!</h1>
     {% if not login_page and not signup_page %}
-    <div class="user-info">
+    <div>
       Logged in as {{ user }}
     </div>
     <form action="{% url 'logout' %}" method="post">
@@ -28,9 +28,5 @@
 
   header h1 {
     font-weight: bold;
-  }
-
-  .user-info {
-    margin-bottom: 10px;
   }
 </style>
