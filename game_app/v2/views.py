@@ -2,7 +2,7 @@ import json
 from django.db.models import Q
 
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.shortcuts import render, redirect
@@ -68,6 +68,11 @@ def login_view(request):
     return render(request, "game_app/login.html", context)
 
 
+def logout_view(request):
+    logout(request)
+    return redirect("login")
+
+
 # Game Views
 
 @authenticate_login_user
@@ -87,19 +92,9 @@ def game_home(request):
             'game_id': game.id
         })
 
-    # create another view to show wins/lose/draws 
-    win_counts = {}
-    for opponent in opponent_users:
-        wins_against_opponent = Game.objects.filter(
-            Q(player_1=opponent, outcome=f"{user} Winner") | 
-            Q(player_2=opponent, outcome=f"{user} Winner")
-        ).count()
-        win_counts[opponent] = wins_against_opponent
-
     context = {
         "opponent_users": opponent_users,
         "active_game_info": active_game_info,
-        "win_counts": win_counts,
     }
 
     return render(request, "game_app/home.html", context)
@@ -110,7 +105,6 @@ def new_game(request, opponent_user_id):
     try:
         game = create_new_game(request, opponent_user_id)
         return redirect("game_play", game.id, game.player_1.id)
-    
     except ValidationError as e:
         messages.error(request, e.messages[0])
         return redirect("game_home")
@@ -139,7 +133,9 @@ def game_play(request, game_id, player_id):
             if form.is_valid():
                 row, col = form.cleaned_data
                 updated_game_board = update_board(row, col, game_board, player_icon)
-                
+                game.board = json.dumps(updated_game_board)
+                switch_active_player(game, user)
+
                 if check_winner(updated_game_board, player_icon):
                     game.outcome = f"{user} Wins"
                 
@@ -187,6 +183,9 @@ def game_over(request, game_id):
     context = {
         "outcome_message": game.outcome, 
         "game_id": game_id,
+        "game_outcome": game.outcome, 
+        "winner_outcome": f"{user} Wins",
+        "draw_outcome": "A Draw",
     }
 
     return render(request, "game_app/game_over.html", context)

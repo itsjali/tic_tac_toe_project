@@ -5,6 +5,10 @@
     <div class="user-info">
       Logged in as {{ user }}
     </div>
+    <form action="{% url 'logout' %}" method="post">
+      {% csrf_token %}
+      <button type="submit">Logout</button>
+    </form>
     {% endif %}
   </header>
 
@@ -18,11 +22,15 @@
   header {
     background-color: #252241;
     color: #fff;
-    padding: 20px;
+    padding: 10px;
     text-align: center;
   }
 
   header h1 {
     font-weight: bold;
+  }
+
+  .user-info {
+    margin-bottom: 10px; 
   }
 </style>

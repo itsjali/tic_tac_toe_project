@@ -2,7 +2,13 @@
 
 {% block content %}
 <div class="container">
-  <h1>{{ outcome_message }}</h1>
+  {% if winner_outcome in game_outcome%}
+    <h1>You Win!</h1>
+  {% elif draw_outcome in game_outcome%}
+    <h1>It's a Draw!</h1>
+  {% else %}
+    <h1>You Lose!</h1>
+  {% endif %}
   <div class="button-container">
     <form method="post" action="{% url 'game_over' game_id=game_id %}">
       {% csrf_token %}
