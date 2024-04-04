@@ -20,15 +20,6 @@
         {% endfor %}
       </ul>
     </div>
-
-    <div class="wins section">
-      <h2>Wins</h2>
-      <ul>
-        {% for opponent, win_count in win_counts.items %}
-        <li>{{ opponent }}: {{ win_count }}</li>
-        {% endfor %}
-      </ul>
-    </div>
   </section>
 
   {% if messages %}
