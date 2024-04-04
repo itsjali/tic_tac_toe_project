@@ -1,6 +1,6 @@
 from django.urls import path
 
-from game_app.v2.views import new_game, active_games, game_play, game_over, game_home, signup_view, login_view
+from game_app.v2 import views
 
 
 urlpatterns = [
