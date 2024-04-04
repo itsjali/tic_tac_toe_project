@@ -55,7 +55,6 @@ class LoginForm(forms.Form):
             return user
 
 
-
 class PlayerInputForm(forms.Form):
     row = forms.IntegerField(min_value=1, max_value=3)
     col = forms.IntegerField(min_value=1, max_value=3)
@@ -81,4 +80,5 @@ class PlayerInputForm(forms.Form):
             raise CellAlreadyFilled("Cell already filled. Please try again.")
 
         cleaned_data["formatted_input"] = (row, col)
-        return cleaned_data["formatted_input"]
+        cleaned_data["formatted_board"] = game_board
+        return cleaned_data["formatted_input"], cleaned_data["formatted_board"]

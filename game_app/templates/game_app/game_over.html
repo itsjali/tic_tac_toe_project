@@ -10,9 +10,9 @@
     <h1>You Lose!</h1>
   {% endif %}
   <div class="button-container">
-    <form method="post" action="{% url 'game_over' game_id=game_id %}">
+    <form method="post" action="{% url 'game_home' %}">
       {% csrf_token %}
-      <button type="submit" name="reset">Back to Main Menu</button>
+      <button type="submit" name="reset" class="back-button">Back to Main Menu</button>
     </form>
   </div>
 </div>
@@ -29,7 +29,7 @@
     margin-top: 20px;
   }
 
-  button {
+  .back-button {
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
